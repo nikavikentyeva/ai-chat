@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Check, Copy } from 'lucide-react';
@@ -10,14 +10,16 @@ interface CodeBlockProps {
   children: string;
 }
 
-export function CodeBlock({ language, children }: CodeBlockProps) {
+export const CodeBlock = React.memo(CodeBlockComponent);
+
+function CodeBlockComponent({ language, children }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(children);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, [children]);
 
   return (
     <div className="mb-3 overflow-hidden rounded-lg border border-border">

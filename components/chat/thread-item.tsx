@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { MessageSquare, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Thread } from '@/types';
@@ -11,7 +12,9 @@ interface ThreadItemProps {
   onDelete: () => void;
 }
 
-export function ThreadItem({ thread, isActive, onClick, onDelete }: ThreadItemProps) {
+export const ThreadItem = React.memo(ThreadItemComponent);
+
+function ThreadItemComponent({ thread, isActive, onClick, onDelete }: ThreadItemProps) {
   return (
     <div
       onClick={onClick}

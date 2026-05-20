@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Send, Square } from 'lucide-react';
 import { useAutoResize } from '@/hooks/use-auto-resize';
 import { cn } from '@/lib/utils';
@@ -12,7 +13,9 @@ interface ChatInputProps {
   onStop: () => void;
 }
 
-export function ChatInput({
+export const ChatInput = React.memo(ChatInputComponent);
+
+function ChatInputComponent({
   input,
   handleInputChange,
   handleSubmit,

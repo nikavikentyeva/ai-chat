@@ -1,3 +1,4 @@
+import React from 'react';
 import { ShoppingBag } from 'lucide-react';
 
 interface ProductCardProps {
@@ -7,7 +8,9 @@ interface ProductCardProps {
   category?: string;
 }
 
-export function ProductCard({ name, price, description, category }: ProductCardProps) {
+export const ProductCard = React.memo(ProductCardComponent);
+
+function ProductCardComponent({ name, price, description, category }: ProductCardProps) {
   return (
     <div className="my-2 max-w-sm overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md">
       <div className="flex h-32 items-center justify-center bg-muted">

@@ -1,10 +1,11 @@
 'use client';
 
+import React from 'react';
 import { Plus } from 'lucide-react';
 import { useChatStore } from '@/lib/store';
 import { ThreadItem } from './thread-item';
 
-export function ThreadList() {
+function ThreadListComponent() {
   const { threads, activeThreadId, createThread, setActiveThread, deleteThread } =
     useChatStore();
 
@@ -30,3 +31,5 @@ export function ThreadList() {
     </div>
   );
 }
+
+export const ThreadList = React.memo(ThreadListComponent);

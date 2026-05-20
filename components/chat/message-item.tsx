@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { User, Bot, Loader2, Cloud, Package, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils';
@@ -12,7 +13,17 @@ interface MessageItemProps {
   message: ChatMessage;
 }
 
-export function MessageItem({ message }: MessageItemProps) {
+export const MessageItem = React.memo(MessageItemComponent, (prev, next) => {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.role === next.message.role &&
+    prev.message.isStreaming === next.message.isStreaming &&
+    JSON.stringify(prev.message.toolInvocations) === JSON.stringify(next.message.toolInvocations)
+  );
+});
+
+function MessageItemComponent({ message }: MessageItemProps) {
   const isUser = message.role === 'user';
 
   return (
@@ -42,7 +53,11 @@ export function MessageItem({ message }: MessageItemProps) {
         </div>
 
         <div className="prose prose-sm max-w-none text-foreground">
-          {message.content && <MarkdownRenderer content={message.content} />}
+          {message.content && message.isStreaming ? (
+            <div className="whitespace-pre-wrap">{message.content}</div>
+          ) : message.content ? (
+            <MarkdownRenderer content={message.content} />
+          ) : null}
         </div>
 
         {/* Tool invocations — Generative UI & Tool Calling */}

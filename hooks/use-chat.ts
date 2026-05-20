@@ -8,6 +8,7 @@ export interface ChatMessage {
   content: string;
   toolInvocations?: ToolInvocation[];
   createdAt: number;
+  isStreaming?: boolean;
 }
 
 export interface ToolInvocation {
@@ -45,6 +46,10 @@ export function useChat(options: UseChatOptions): UseChatHelpers {
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const assistantMessageRef = useRef<ChatMessage | null>(null);
+  const messagesRef = useRef<ChatMessage[]>(messages);
+
+  // Keep ref in sync with state to avoid stale closures
+  messagesRef.current = messages;
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -88,6 +93,18 @@ export function useChat(options: UseChatOptions): UseChatHelpers {
           .filter((m) => !(m.role === 'assistant' && !m.content?.trim() && (!m.toolInvocations || m.toolInvocations.length === 0)))
           .map((m) => ({ role: m.role, content: m.content }));
 
+        // Mark final assistant message before sending
+        const finalizeAssistantMessage = (finalMsg: ChatMessage) => {
+          const completed = { ...finalMsg, isStreaming: false };
+          setMessages((prev) =>
+            prev.map((m) => (m.id === completed.id ? completed : m))
+          );
+          localStorage.setItem(
+            `messages-${threadId}`,
+            JSON.stringify([...updatedMessages, completed])
+          );
+        };
+
         const response = await fetch(api, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -109,6 +126,7 @@ export function useChat(options: UseChatOptions): UseChatHelpers {
           content: '',
           toolInvocations: [],
           createdAt: Date.now(),
+          isStreaming: true,
         };
         assistantMessageRef.current = assistantMessage;
 
@@ -184,17 +202,17 @@ export function useChat(options: UseChatOptions): UseChatHelpers {
               } else if (event.type === 'done') {
                 // finished
               }
+
+              // Update ref after each event
+              assistantMessageRef.current = assistantMessage;
             } catch {
               // ignore parse errors for partial data
             }
           }
         }
 
-        // Final save
-        localStorage.setItem(
-          `messages-${threadId}`,
-          JSON.stringify([...updatedMessages, assistantMessage])
-        );
+        // Finalize and save
+        finalizeAssistantMessage(assistantMessage);
       } catch (err) {
         if ((err as Error).name === 'AbortError') {
           // User cancelled
@@ -206,7 +224,7 @@ export function useChat(options: UseChatOptions): UseChatHelpers {
         abortControllerRef.current = null;
       }
     },
-    [input, isLoading, messages, api, threadId]
+    [input, isLoading, api, threadId]
   );
 
   return {

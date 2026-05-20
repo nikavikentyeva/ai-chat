@@ -1,3 +1,4 @@
+import React from 'react';
 import { Cloud, Sun, CloudRain, Snowflake, CloudSun } from 'lucide-react';
 
 interface WeatherCardProps {
@@ -6,6 +7,8 @@ interface WeatherCardProps {
   condition: string;
 }
 
+export const WeatherCard = React.memo(WeatherCardComponent);
+
 const iconMap: Record<string, React.ReactNode> = {
   Солнечно: <Sun className="h-8 w-8 text-yellow-500" />,
   Облачно: <Cloud className="h-8 w-8 text-gray-400" />,
@@ -13,7 +16,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Снег: <Snowflake className="h-8 w-8 text-blue-300" />,
 };
 
-export function WeatherCard({ city, temperature, condition }: WeatherCardProps) {
+function WeatherCardComponent({ city, temperature, condition }: WeatherCardProps) {
   return (
     <div className="my-2 flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
       {iconMap[condition] || <CloudSun className="h-8 w-8 text-yellow-400" />}

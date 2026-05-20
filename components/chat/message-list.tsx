@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { MessageItem } from './message-item';
 import type { ChatMessage } from '@/hooks/use-chat';
 
@@ -9,7 +9,9 @@ interface MessageListProps {
   isLoading?: boolean;
 }
 
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export const MessageList = React.memo(MessageListComponent);
+
+function MessageListComponent({ messages, isLoading }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
