@@ -7,24 +7,17 @@ import { formatDate } from '@/lib/utils';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { WeatherCard } from '@/components/ui/weather-card';
 import { ProductCard } from '@/components/ui/product-card';
-import type { ChatMessage } from '@/hooks/use-chat';
+import type { Message } from '@ai-sdk/react';
 
 interface MessageItemProps {
-  message: ChatMessage;
+  message: Message;
+  isLoading?: boolean;
+  isLast?: boolean;
 }
 
-export const MessageItem = React.memo(MessageItemComponent, (prev, next) => {
-  return (
-    prev.message.id === next.message.id &&
-    prev.message.content === next.message.content &&
-    prev.message.role === next.message.role &&
-    prev.message.isStreaming === next.message.isStreaming &&
-    JSON.stringify(prev.message.toolInvocations) === JSON.stringify(next.message.toolInvocations)
-  );
-});
-
-function MessageItemComponent({ message }: MessageItemProps) {
+function MessageItemComponent({ message, isLoading, isLast }: MessageItemProps) {
   const isUser = message.role === 'user';
+  const isStreaming = isLoading && !isUser && isLast && !message.toolInvocations?.length;
 
   return (
     <div
@@ -48,12 +41,12 @@ function MessageItemComponent({ message }: MessageItemProps) {
             {isUser ? 'Вы' : 'AI Ассистент'}
           </span>
           <span className="text-xs text-muted-foreground">
-            {formatDate(message.createdAt)}
+            {message.createdAt ? formatDate(message.createdAt) : ''}
           </span>
         </div>
 
         <div className="prose prose-sm max-w-none text-foreground">
-          {message.content && message.isStreaming ? (
+          {message.content && isStreaming ? (
             <div className="whitespace-pre-wrap">{message.content}</div>
           ) : message.content ? (
             <MarkdownRenderer content={message.content} />
@@ -63,7 +56,7 @@ function MessageItemComponent({ message }: MessageItemProps) {
         {/* Tool invocations — Generative UI & Tool Calling */}
         {message.toolInvocations?.map((tool) => (
           <div key={tool.toolCallId} className="mt-2">
-            {tool.state === 'pending' && (
+            {(tool.state === 'call' || tool.state === 'partial-call') && (
               <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {tool.toolName === 'getWeather' && (
@@ -86,17 +79,17 @@ function MessageItemComponent({ message }: MessageItemProps) {
 
             {tool.state === 'result' && tool.result && tool.toolName === 'getWeather' && (
               <WeatherCard
-                city={tool.result.city}
-                temperature={tool.result.temperature}
-                condition={tool.result.condition}
+                city={(tool.result as any).city}
+                temperature={(tool.result as any).temperature}
+                condition={(tool.result as any).condition}
               />
             )}
             {tool.state === 'result' && tool.result && tool.toolName === 'showProductCard' && (
               <ProductCard
-                name={tool.result.name}
-                price={tool.result.price}
-                description={tool.result.description}
-                category={tool.result.category}
+                name={(tool.result as any).name}
+                price={(tool.result as any).price}
+                description={(tool.result as any).description}
+                category={(tool.result as any).category}
               />
             )}
             {tool.state === 'result' && tool.result && tool.toolName === 'getCurrentTime' && (
@@ -105,9 +98,9 @@ function MessageItemComponent({ message }: MessageItemProps) {
                   <Clock className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{tool.result.city}</p>
-                  <p className="text-2xl font-bold">{tool.result.time}</p>
-                  <p className="text-sm text-muted-foreground">{tool.result.date}</p>
+                  <p className="text-sm text-muted-foreground">{(tool.result as any).city}</p>
+                  <p className="text-2xl font-bold">{(tool.result as any).time}</p>
+                  <p className="text-sm text-muted-foreground">{(tool.result as any).date}</p>
                 </div>
               </div>
             )}
@@ -117,3 +110,14 @@ function MessageItemComponent({ message }: MessageItemProps) {
     </div>
   );
 }
+
+export const MessageItem = React.memo(MessageItemComponent, (prev, next) => {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.role === next.message.role &&
+    prev.isLoading === next.isLoading &&
+    prev.isLast === next.isLast &&
+    JSON.stringify(prev.message.toolInvocations) === JSON.stringify(next.message.toolInvocations)
+  );
+});

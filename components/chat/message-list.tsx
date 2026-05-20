@@ -2,14 +2,12 @@
 
 import React, { useRef, useEffect } from 'react';
 import { MessageItem } from './message-item';
-import type { ChatMessage } from '@/hooks/use-chat';
+import type { Message } from '@ai-sdk/react';
 
 interface MessageListProps {
-  messages: ChatMessage[];
+  messages: Message[];
   isLoading?: boolean;
 }
-
-export const MessageList = React.memo(MessageListComponent);
 
 function MessageListComponent({ messages, isLoading }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -34,8 +32,13 @@ function MessageListComponent({ messages, isLoading }: MessageListProps) {
         </div>
       )}
 
-      {messages.map((message) => (
-        <MessageItem key={message.id} message={message} />
+      {messages.map((message, index) => (
+        <MessageItem
+          key={message.id}
+          message={message}
+          isLoading={isLoading}
+          isLast={index === messages.length - 1}
+        />
       ))}
 
       {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
@@ -51,3 +54,5 @@ function MessageListComponent({ messages, isLoading }: MessageListProps) {
     </div>
   );
 }
+
+export const MessageList = React.memo(MessageListComponent);

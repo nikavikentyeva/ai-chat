@@ -1,10 +1,3 @@
-export interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string;
-  createdAt: Date;
-}
-
 export interface Thread {
   id: string;
   title: string;

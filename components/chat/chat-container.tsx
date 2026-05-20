@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import type { Message } from '@ai-sdk/react';
 import { useChatStore } from '@/lib/store';
-import { useChat } from '@/hooks/use-chat';
 import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
 
@@ -12,6 +13,27 @@ interface ChatContainerProps {
 
 export function ChatContainer({ threadId }: ChatContainerProps) {
   const updateThreadTitle = useChatStore((s) => s.updateThreadTitle);
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+
+  // Load messages from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`messages-${threadId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved, (key, value) => {
+          if (key === 'createdAt' && typeof value === 'string') {
+            return new Date(value);
+          }
+          return value;
+        });
+        setInitialMessages(parsed);
+      } catch {
+        setInitialMessages([]);
+      }
+    } else {
+      setInitialMessages([]);
+    }
+  }, [threadId]);
 
   const {
     messages,
@@ -19,28 +41,22 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
     handleInputChange,
     handleSubmit,
     isLoading,
-    setMessages,
     stop,
     error,
   } = useChat({
     api: '/api/chat',
-    threadId,
+    id: threadId,
+    initialMessages,
   });
 
-  // Load messages from localStorage
+  // Save to localStorage when streaming finishes
+  const prevIsLoading = useRef(isLoading);
   useEffect(() => {
-    const saved = localStorage.getItem(`messages-${threadId}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setMessages(parsed);
-      } catch {
-        // ignore parse error
-      }
-    } else {
-      setMessages([]);
+    if (prevIsLoading.current && !isLoading && messages.length > 0) {
+      localStorage.setItem(`messages-${threadId}`, JSON.stringify(messages));
     }
-  }, [threadId, setMessages]);
+    prevIsLoading.current = isLoading;
+  }, [isLoading, messages, threadId]);
 
   // Auto-title thread on first message
   useEffect(() => {
@@ -69,7 +85,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
 
       {error && (
         <div className="mx-4 mt-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
-          Ошибка: {error}
+          Ошибка: {error.message}
         </div>
       )}
 

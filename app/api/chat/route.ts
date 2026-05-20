@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     tools: {
       getWeather: tool({
         description: 'Получить текущую погоду для указанного города. Использовать ТОЛЬКО при явном запросе о погоде или температуре.',
-        inputSchema: z.object({
+        parameters: z.object({
           city: z.string().optional().describe('Название города (если не указан — используй Москву)'),
         }),
         execute: async ({ city }) => {
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
       getCurrentTime: tool({
         description: 'Получить текущее время и дату для указанного города. Использовать ТОЛЬКО при явном запросе о времени, часах или текущей дате.',
-        inputSchema: z.object({
+        parameters: z.object({
           city: z.string().optional().describe('Название города (если не указан — используй Москву)'),
         }),
         execute: async ({ city }) => {
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       showProductCard: tool({
         description:
           'Показать карточку товара в интерфейсе. Использовать ТОЛЬКО если пользователь явно спрашивает о товаре, продукте или хочет увидеть карточку товара.',
-        inputSchema: z.object({
+        parameters: z.object({
           name: z.string().describe('Название товара'),
           price: z.number().describe('Цена в рублях'),
           description: z.string().optional().describe('Описание товара'),
@@ -92,75 +92,9 @@ export async function POST(req: Request) {
         execute: async (params) => params,
       }),
     },
-    maxOutputTokens: 2000,
+    maxTokens: 2000,
     temperature: 0.5,
   });
 
-  const encoder = new TextEncoder();
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const part of result.fullStream) {
-          console.log('Groq part:', part.type, JSON.stringify(part).slice(0, 200));
-          switch (part.type) {
-            case 'text-delta': {
-              const payload = JSON.stringify({ type: 'text', content: part.text });
-              controller.enqueue(encoder.encode('data: ' + payload + '\n\n'));
-              break;
-            }
-
-            case 'tool-call': {
-              const payload = JSON.stringify({
-                type: 'tool-start',
-                toolName: part.toolName,
-                toolCallId: part.toolCallId,
-                args: part.input,
-              });
-              controller.enqueue(encoder.encode('data: ' + payload + '\n\n'));
-              break;
-            }
-
-            case 'tool-result': {
-              const payload = JSON.stringify({
-                type: 'tool',
-                toolName: part.toolName,
-                toolCallId: part.toolCallId,
-                result: part.output,
-              });
-              controller.enqueue(encoder.encode('data: ' + payload + '\n\n'));
-              break;
-            }
-
-            case 'finish': {
-              const payload = JSON.stringify({ type: 'done' });
-              controller.enqueue(encoder.encode('data: ' + payload + '\n\n'));
-              break;
-            }
-
-            case 'error': {
-              const errorMsg = typeof part.error === 'string' ? part.error : JSON.stringify(part.error);
-              console.error('AI stream error part:', part.error);
-              const payload = JSON.stringify({ type: 'error', message: errorMsg });
-              controller.enqueue(encoder.encode('data: ' + payload + '\n\n'));
-              break;
-            }
-          }
-        }
-
-        controller.close();
-      } catch (err) {
-        console.error('AI stream fatal error:', err);
-        controller.error(err);
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-    },
-  });
+  return result.toDataStreamResponse();
 }
